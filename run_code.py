@@ -10,7 +10,7 @@ from langdetect import detect
 
 @app.route('/fetch_news', methods=['GET'])
 def fetch_news():
-    api_key = "d1b4f3c50af84ed1a96a0eddaf92c940"
+    api_key = "ENTER_API_KEY"
     keyword = request.args.get('keyword')  # This line extracts the keyword from the query parameter
 
     url = f"https://newsapi.org/v2/everything?q={keyword}&apiKey={api_key}&sortBy=popularity,publishedAt&pageSize=5&language=en"
