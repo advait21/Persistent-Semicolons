@@ -2,26 +2,32 @@ import requests
 from bs4 import BeautifulSoup
 from rake_nltk import Rake
 import re
+from flask import Flask, request, jsonify
 
-def fetch_news(api_key, keyword):
-    url = f"https://newsapi.org/v2/everything?q={keyword}&apiKey={api_key}&sortBy=popularity,publishedAt&pageSize=5"
+app = Flask(__name__)
 
+from langdetect import detect
+
+@app.route('/fetch_news', methods=['GET'])
+def fetch_news():
+    api_key = "d1b4f3c50af84ed1a96a0eddaf92c940"
+    keyword = request.args.get('keyword')  # This line extracts the keyword from the query parameter
+
+    url = f"https://newsapi.org/v2/everything?q={keyword}&apiKey={api_key}&sortBy=popularity,publishedAt&pageSize=5&language=en"
+    
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise an exception for HTTP errors
         data = response.json()
 
         if "status" in data and data["status"] == "error":
-            print("Error:", data["message"])
-            return
+            return jsonify({"error": data["message"]})
 
         articles = data.get("articles", [])
         if not articles:
-            print("No articles found for the keyword:", keyword)
-            return
+            return jsonify({"message": f"No articles found for the keyword: {keyword}"})
 
-        # Initialize a set to store keywords
-        unique_keywords = set()
+        result = []
 
         for article in articles:
             title = article.get("title", "N/A")
@@ -31,24 +37,29 @@ def fetch_news(api_key, keyword):
             if content is None:
                 continue
 
-            print("Title:", title)
-            print("Publication Date:", publication_date)
-            print("Content Length:", len(content))  # Check content length
-
+            # Detect language of the content
+            lang = detect(content)
+            if lang != 'en':
+                continue  # Skip non-English articles
+            
             # Generate keywords using RAKE
             keywords = generate_keywords(content)
 
-            # Filter out keywords that have already been extracted
-            unique_keywords.update(set(keywords) - unique_keywords)
+            result.append({
+                "title": title,
+                "publication_date": publication_date,
+                "content_length": len(content),
+                "content": content,  # Include content in the response
+                "keywords": keywords
+            })
 
-            print("Keywords:", keywords)
-
-            print("\n" + "-"*50 + "\n")
+        return jsonify(result)
 
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
+        return jsonify({"error": f"HTTP error occurred: {http_err}"})
     except Exception as e:
-        print(f"Error occurred: {e}")
+        return jsonify({"error": f"Error occurred: {e}"})
+
 
 def fetch_article_content(url):
     try:
@@ -79,10 +90,5 @@ def generate_keywords(content):
 
     return keywords
 
-def main():
-    api_key = "ENTER_API_KEY"
-    keyword = input("Enter a keyword: ")
-    fetch_news(api_key, keyword)
-
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
