@@ -11,4 +11,4 @@ Please do the imports by using the following commands:
 
 Generate the API key from this site : https://newsapi.org
 
-And enter the generated key in ENTER_API_KEY variable on line 83.
+And enter the generated key in ENTER_API_KEY variable on line 13.
